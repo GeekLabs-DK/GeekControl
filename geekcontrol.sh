@@ -38,13 +38,15 @@ function write_vfd()
   echo -ne "${1}" >${VFD_SERIAL}
 }
 
-function update_vfd()
+function update_visuals()
 {
   write_vfd "\\nGeekControl"
   if $state; then
     write_vfd "     open"
-  else
+    set_pin $LED_STATE 1
+   else
     write_vfd "   closed"
+    set_pin $LED_STATE 0
   fi
   write_vfd "  Geeks present: ${geeks}"
 }
@@ -56,12 +58,7 @@ last_tgl=0
 
 while true; do
   get_state
-  if $state; then
-    set_pin $LED_STATE 1
-  else
-    set_pin $LED_STATE 0
-  fi
-  update_vfd
+  update_visuals
 
   BUTCHECK=100
   while [ $BUTCHECK -gt 0 ]; do
@@ -80,7 +77,7 @@ while true; do
         state=true
 	geeks=1
       fi
-      update_vfd
+      update_visuals
       set_state $state $geeks
       #BUTCHECK=0
     fi
@@ -90,8 +87,9 @@ while true; do
     if [ $last_plus -eq 0 ]; then
       echo plus, present: $geeks
       geeks=$((${geeks}+1))
-      update_vfd
-      set_state true ${geeks}
+      state=true
+      update_visuals
+      set_state $state ${geeks}
       #BUTCHECK=0
     fi
   fi
@@ -104,7 +102,7 @@ while true; do
         geeks=0
         state=false
       fi
-      update_vfd
+      update_visuals
       set_state $state ${geeks}
       #BUTCHECK=0
     fi
