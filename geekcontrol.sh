@@ -1,5 +1,9 @@
 #! /bin/bash
 
+# Copyright (C) 2015-2016 Mikkel Kirkgaard Nielsen
+# This software can be distributed under the terms of the GNU General
+# Public License (GNU GPL) v3 or later (http://www.gnu.org/licenses/gpl).
+
 . ./BBB_funcs.sh
 . ./apikey
 
