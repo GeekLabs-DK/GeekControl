@@ -3,6 +3,25 @@
 . ./BBB_funcs.sh
 . ./apikey
 
+# The hostname of your spaceapi implementation.
+# Assumes it is running the official endpoint scripts from
+# https://github.com/SpaceApi/endpoint-scripts/. But doesn't
+# assume that mod_rewrite is enabled, thus uses index.php
+# parameters directly (some hosting providers disallow .htacces).
+SPACEAPI=spaceapi.geeklabs.dk
+
+# Set this to an ip to force the use of, but still use
+# $SPACEAPI in the HTTP Host header. This might be if the device
+# is on the same local network as the spaceapi but its dns resolves
+# to an external ip.
+FORCE_IP=
+
+if [ -z $FORCE_IP ]; then
+  WGET_PARAMS=http://$SPACEAPI/
+else
+  WGET_PARAMS="--header=Host:$SPACEAPI http://$FORCE_IP"
+fi
+
 BTN_TGL=60
 BTN_MINUS=50
 BTN_PLUS=51
@@ -18,16 +37,18 @@ export_pin $BTN_PLUS  in
 
 #http://spaceapi.geeklabs.dk/?control=sensors&command=set&key=&sensors={%22state%22:{%22open%22:true}}
 #http://spaceapi.geeklabs.dk/?format=json
-function set_state ()
-{
+
+# $1 state
+# $2 members present
+function set_state () {
 #  echo setting state: $1, present: $2
 #  echo apikey: $apikey
-  wget -q -O- "http://spaceapi.geeklabs.dk/?control=sensors&command=set&key=${apikey}&sensors={%22state%22:{%22open%22:${1}},%22sensors%22:{%22people_now_present%22:[{%22value%22:${2}}]}}"
+  wget -q -O- $WGET_PARAMS/?control=sensors\&command=set\&key=${apikey}\&sensors=\{%22state%22:\{%22open%22:${1}\},%22sensors%22:\{%22people_now_present%22:[\{%22value%22:${2}\}\]\}\}
 }
 
 function get_state
 {
-  json=`wget -q -O- http://spaceapi.geeklabs.dk/?format=json`
+  json=`wget -q -O- $WGET_PARAMS/?format=json`
   state=`echo $json | js -e 'process.stdin.on("data", function (line) {console.log(JSON.parse(line).state.open)});'`
   geeks=`echo $json | js -e 'process.stdin.on("data", function (line) {console.log(JSON.parse(line).sensors.people_now_present[0].value)});'`
   echo got state: $state, present $geeks
