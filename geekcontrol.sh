@@ -63,23 +63,35 @@ function write_vfd()
   echo -ne "${1}" >${VFD_SERIAL}
 }
 
+spindex=0
+spinners[0]='-'
+spinners[1]='\'
+spinners[2]='/'
+IDLE_TOGGLE_INTERVAL=5
 function update_visuals()
 {
-  write_vfd "\\nGeekControl"
-  if $state; then
-    write_vfd "     open"
-    set_pin $LED_STATE 1
-   else
-    write_vfd "   closed"
-    set_pin $LED_STATE 0
+  if ([ $IDLE_TOGGLE_INTERVAL -gt 0 ] && [ $(((($(date +%s)-$but_stamp)/${IDLE_TOGGLE_INTERVAL})%2)) -eq 1 ]); then
+    write_vfd "\\n$(wget --quiet -O- http://${FORCE_IP}/VFD.php?get=r)"
+  else
+    write_vfd "\\nGeekControl"
+    if $state; then
+      write_vfd "     open"
+      set_pin $LED_STATE 1
+    else
+      write_vfd "   closed"
+      set_pin $LED_STATE 0
+    fi
+    spindex=$(((spindex+1)%3))
+    echo $spindex ${spinners[$spindex]}
+    write_vfd "${spinners[$spindex]} Geeks present: ${geeks}"
   fi
-  write_vfd "  Geeks present: ${geeks}"
 }
 
 
 last_plus=0
 last_minus=0
 last_tgl=0
+but_stamp=$(date +%s)
 
 while true; do
   get_state
@@ -94,6 +106,8 @@ while true; do
 
   if [ $now_tgl -eq 1 ]; then
     if [ $last_tgl -eq 0 ]; then
+      # toggle pushed
+      but_stamp=$(date +%s)
       echo toggling, state: $state
       if $state; then
         state=false
@@ -110,6 +124,8 @@ while true; do
  
   if [ ! $BUTCHECK -eq 0 -a $now_plus -eq 1 ]; then
     if [ $last_plus -eq 0 ]; then
+      # plus pushed
+      but_stamp=$(date +%s)
       echo plus, present: $geeks
       geeks=$((${geeks}+1))
       state=true
@@ -121,6 +137,8 @@ while true; do
 
   if [ ! $BUTCHECK -eq 0 -a $now_minus -eq 1 ]; then
     if [ $last_minus -eq 0 ]; then
+      # minus pushed
+      but_stamp=$(date +%s)
       echo minus, present: $geeks
       geeks=$((${geeks}-1))
       if [ $geeks -le 0 ]; then
@@ -136,7 +154,7 @@ while true; do
   last_tgl=$now_tgl
   last_plus=$now_plus
   last_minus=$now_minus
-  sleep 0.1
+  sleep 0.01
   BUTCHECK=$(($BUTCHECK-1))
 done
 done
